@@ -102,7 +102,10 @@ def tarama_yap():
                 onceki_durum = df['Trend'].iloc[-2]
                 
                 if son_durum != onceki_durum:
-                    msg = f"🚨 *BIST SİNYAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: `{hisse}`\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
+                    tv_hisse = hisse.replace(".IS", "")
+                    tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{tv_hisse}"
+                    
+                    msg = f"🚨 *BIST SİNYAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
                     print(f"Sinyal değişti: {hisse} ({period_adi}) -> {son_durum}")
                     send_telegram_message(msg)
             except Exception as e:
