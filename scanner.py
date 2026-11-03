@@ -15,7 +15,6 @@ HISSELER = [
 
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    # disable_web_page_preview: True parametresi ile TradingView reklam/önizleme kartı engellenir
     payload = {
         "chat_id": CHAT_ID, 
         "text": message, 
@@ -27,23 +26,41 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"Telegram mesajı gönderilemedi: {e}")
 
+def wilder_atr(df, period):
+    high = df['High']
+    low = df['Low']
+    close = df['Close']
+    tr = np.maximum(high - low, np.maximum(abs(high - close.shift(1)), abs(low - close.shift(1))))
+    return tr.ewm(alpha=1/period, adjust=False).mean()
+
+def calculate_mfi(df, period=14):
+    tp = (df['High'] + df['Low'] + df['Close']) / 3
+    rmf = tp * df['Volume']
+    pos_mf = np.where(tp > tp.shift(1), rmf, 0.0)
+    neg_mf = np.where(tp < tp.shift(1), rmf, 0.0)
+    
+    pos_sum = pd.Series(pos_mf).rolling(window=period).sum()
+    neg_sum = pd.Series(neg_mf).rolling(window=period).sum()
+    
+    mfi = 100.0 - (100.0 / (1.0 + (pos_sum / (neg_sum + 1e-10))))
+    return mfi
+
 def hesapla_indikatorler(df):
     ap = 14
     coeff = 1.0
-    df['TR'] = np.maximum(df['High'] - df['Low'], 
-                          np.maximum(abs(df['High'] - df['Close'].shift(1)), 
-                                     abs(df['Low'] - df['Close'].shift(1))))
-    df['ATR'] = df['TR'].rolling(window=ap).mean()
+    
+    # 1. AlphaTrend Hesaplama (TradingView MFI ve Wilder ATR uyumlu)
+    df['ATR'] = wilder_atr(df, ap)
     df['UpT'] = df['Low'] - (df['ATR'] * coeff)
     df['DnT'] = df['High'] + (df['ATR'] * coeff)
     
-    hlc3 = (df['High'] + df['Low'] + df['Close']) / 3
-    df['MFI_Cond'] = hlc3 >= hlc3.shift(ap)
+    df['MFI'] = calculate_mfi(df, ap)
+    df['MFI_Cond'] = df['MFI'] >= 50.0
     
     at = []
     current_at = df['Low'].iloc[0]
     for i in range(len(df)):
-        if i < ap:
+        if i < ap or pd.isna(df['MFI_Cond'].iloc[i]):
             at.append(current_at)
             continue
         upt_val = df['UpT'].iloc[i]
@@ -57,10 +74,11 @@ def hesapla_indikatorler(df):
         at.append(val)
     df['AT'] = at
 
+    # 2. SuperTrend Hesaplama (Factor=3.0, PD=7, Wilder ATR uyumlu)
     factor = 3.0
     pd_val = 7
     hl2 = (df['High'] + df['Low']) / 2
-    df['ATR_ST'] = (df['High'] - df['Low']).rolling(window=pd_val).mean()
+    df['ATR_ST'] = wilder_atr(df, pd_val)
     df['ST_Up'] = hl2 - (factor * df['ATR_ST'])
     df['ST_Dn'] = hl2 + (factor * df['ATR_ST'])
     
@@ -109,7 +127,6 @@ def tarama_yap():
                 
                 if son_durum != onceki_durum:
                     tv_hisse = hisse.replace(".IS", "")
-                    # Reklamsız mobil widget embed görünüm linki
                     tv_link = f"https://s.tradingview.com/widgetembed/?symbol=BIST:{tv_hisse}&interval=60&theme=dark"
                     
                     msg = f"🚨 *BIST SİNYAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
