@@ -8,9 +8,9 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "TELEGRAM_BOT_TOKEN_BURAYA")
 CHAT_ID = os.environ.get("CHAT_ID", "TELEGRAM_CHAT_ID_BURAYA")
 
 HISSELER = [
-    "THYAO.IS", "GARAN.IS", "EREGL.IS", "KCHOL.IS", "SISE.IS",
-    "ASELS.IS", "BIMAS.IS", "AKBNK.IS", "TUPRS.IS", "YKBNK.IS",
-    "PGSUS.IS", "SASA.IS", "HEKTS.IS", "ENKAI.IS", "PETKM.IS"
+    "ENJSA.IS", "GARAN.IS", "EREGL.IS", "KCHOL.IS", "TOASO.IS",
+    "VAKBN.IS", "TCELL.IS", "PGSUS.IS", "GUBRF.IS", "ISCTR.IS",
+    "FROTO.IS", "ALBRK.IS", "TAVHL.IS", "DIRIT.IS", "BIMAS.IS"
 ]
 
 def send_telegram_message(message):
