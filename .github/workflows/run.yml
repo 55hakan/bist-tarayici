@@ -2,6 +2,7 @@ name: BIST Sinyal Tarayici
 
 on:
   schedule:
+    # Türkiye saatiyle 10:20'den 18:30'a kadar her saat başı çalışır (Pazartesi-Cuma)
     - cron: '20 7-15 * * 1-5'
   workflow_dispatch:
 
