@@ -15,7 +15,13 @@ HISSELER = [
 
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    # disable_web_page_preview: True parametresi ile TradingView reklam/önizleme kartı engellenir
+    payload = {
+        "chat_id": CHAT_ID, 
+        "text": message, 
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
+    }
     try:
         requests.post(url, json=payload)
     except Exception as e:
@@ -103,7 +109,8 @@ def tarama_yap():
                 
                 if son_durum != onceki_durum:
                     tv_hisse = hisse.replace(".IS", "")
-                    tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{tv_hisse}"
+                    # Reklamsız mobil widget embed görünüm linki
+                    tv_link = f"https://s.tradingview.com/widgetembed/?symbol=BIST:{tv_hisse}&interval=60&theme=dark"
                     
                     msg = f"🚨 *BIST SİNYAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
                     print(f"Sinyal değişti: {hisse} ({period_adi}) -> {son_durum}")
