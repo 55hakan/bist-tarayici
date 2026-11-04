@@ -9,7 +9,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # ======================================================================
-# 🔑 GÜVENLİ AYARLAR (GitHub Secrets üzerinden alınır)
+# 🔑 GÜVENLİ AYARLAR
 # ======================================================================
 BOT_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_IDS = [os.environ.get("CHAT_ID")]
@@ -92,7 +92,7 @@ def calculate_indicators(df):
                 trend[i] = trend[i-1]
             tsl[i] = trUp[i] if trend[i] == 1 else trDn[i]
             
-        df['TSL'] = tsl
+        df['TSL']  = tsl
         df['Trend'] = np.where(df['AlphaTrend'] > df['TSL'], 'AL', 'SAT')
         return df
     except:
@@ -136,7 +136,7 @@ def run_screener():
                         last_price = df["Close"].iloc[-1]
                         tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}&interval={plan['tv_interval']}"
                         
-                        # Uzantısız, temiz isme gömülü TradingView linkli format
+                        # Sizin örnek verdiğiniz formatın birebir aynısı
                         msg_line = f"🔵 <a href='{tv_link}'><b>{ticker_clean}</b></a> ({last_price:.2f} TL) | <b>{son_durum}</b>"
                         all_hits.append(msg_line)
                 except Exception:
