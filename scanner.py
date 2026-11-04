@@ -49,7 +49,6 @@ def hesapla_indikatorler(df):
     ap = 14
     coeff = 1.0
     
-    # 1. AlphaTrend Hesaplama (TradingView MFI ve Wilder ATR uyumlu)
     df['ATR'] = wilder_atr(df, ap)
     df['UpT'] = df['Low'] - (df['ATR'] * coeff)
     df['DnT'] = df['High'] + (df['ATR'] * coeff)
@@ -74,7 +73,6 @@ def hesapla_indikatorler(df):
         at.append(val)
     df['AT'] = at
 
-    # 2. SuperTrend Hesaplama (Factor=3.0, PD=7, Wilder ATR uyumlu)
     factor = 3.0
     pd_val = 7
     hl2 = (df['High'] + df['Low']) / 2
@@ -126,13 +124,13 @@ def tarama_yap():
                 onceki_durum = df['Trend'].iloc[-2]
                 
                 if son_durum != onceki_durum:
-                    # Hisse adını .IS uzantısından temizleyip tamamen BÜYÜK harfe çeviriyoruz (Örn: kchol.is -> KCHOL)
-                    tv_hisse = hisse.replace(".IS", "").upper()
+                    # Noktadan önceki kısmı güvenle alıyoruz (Örn: KCHOL.IS -> KCHOL)
+                    tv_hisse = hisse.split('.')[0]
                     
-                    # Doğrudan TradingView ana grafik linki (Mobilde uygulamayı veya tarayıcıyı direkt tetikler)
-                    tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{tv_hisse}"
+                    # İlk başta sorunsuz çalışan widgetembed link formatı
+                    tv_link = f"https://s.tradingview.com/widgetembed/?symbol=BIST:{tv_hisse}&interval=60&theme=dark"
                     
-                    msg = f"🚨 *BIST SİNİAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
+                    msg = f"🚨 *BIST SİNYAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
                     print(f"Sinyal değişti: {hisse} ({period_adi}) -> {son_durum}")
                     send_telegram_message(msg)
             except Exception as e:
