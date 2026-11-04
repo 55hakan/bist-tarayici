@@ -25,9 +25,32 @@ SCAN_PLAN = [
 
 # BIST Listesi
 BIST_TICKERS = [
-    "ENJSA", "GARAN", "EREGL", "KCHOL", "TOASO",
-    "VAKBN", "TCELL", "PGSUS", "GUBRF", "ISCTR",
-    "FROTO", "ALBRK", "TAVHL", "DIRIT", "BIMAS"
+    # Bankacılık, Finans & Holdingler (17)
+    "AKBNK", "GARAN", "ISCTR", "YKBNK", "HALKB", "VAKBN", "TSKB", "KCHOL", "SAHOL", 
+    "AGHOL", "DOHOL", "ALARK", "BERA", "TAVHL", "ISMEN", "GEDIK", "INFO",
+
+    # Havacılık, Lojistik & Ulaştırma (7)
+    "THYAO", "PGSUS", "CLEBI", "DOAS", "TUREX", "RYSAS", "GRSEL",
+
+    # Sanayi, Otomotiv, Beyaz Eşya & Cam (15)
+    "FROTO", "TOASO", "OTKAR", "ARCLK", "VESTL", "VESBE", "SISE", "EREGL", "KRDMD", 
+    "BRSAN", "EGEEN", "JANTS", "PARSN", "BOSSA", "KORDS",
+
+    # Enerji, Petrol & Kimya (16)
+    "TUPRS", "PETKM", "AKSA", "ENJSA", "AYDEM", "GWIND", "AKSEN", "CWENE", "ASTOR", 
+    "GESAN", "KONTR", "YEOTK", "EUPWR", "ALFAS", "AHGAZ", "NTGAZ",
+
+    # Perakende, Gıda & Hızlı Tüketim (10)
+    "BIMAS", "MGROS", "SOKM", "CCOLA", "AEFES", "ULKER", "TATGD", "BANVT", "TUKAS", "EKSUN",
+
+    # Telekomünikasyon & Teknoloji (9)
+    "TCELL", "TTKOM", "ASELS", "LOGO", "MTRKS", "ARASE", "KFEIN", "LINK", "NETAS",
+
+    # GYO, Çimento & Gayrimenkul Stratejik (8)
+    "EKGYO", "TRGYO", "OZKGY", "AKCNS", "CIMSA", "BUCIM", "NUHCM", "BOBET",
+
+    # Sağlık, İlaç & Madencilik (5 - Güncel Kodlarıyla)
+    "MPARK", "GENIL", "DEVA", "ECILC", "TRALT"
 ]
 
 BIST_STOCK_LIST = [f"{t}.IS" for t in BIST_TICKERS]
