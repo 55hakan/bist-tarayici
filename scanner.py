@@ -11,8 +11,8 @@ warnings.filterwarnings("ignore")
 # ======================================================================
 # 🔑 AYARLAR
 # ======================================================================
-BOT_TOKEN = os.environ.get("TELEGRAM_TOKEN", "TELEGRAM_BOT_TOKEN_BURAYA")
-TELEGRAM_CHAT_IDS = [os.environ.get("CHAT_ID", "-1001879888537")]
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "TELEGRAM_BOT_TOKEN_BURAYA")
+CHAT_ID = os.environ.get("CHAT_ID", "TELEGRAM_CHAT_ID_BURAYA")
 BATCH_SIZE = 30
 DELAY_BETWEEN_BATCHES = 2.0
 
