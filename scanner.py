@@ -114,7 +114,6 @@ def tarama_yap():
     }
     
     for hisse in HISSELER:
-        # Uzantı tamamen temizleniyor (Örn: VAKBN)
         ticker_clean = hisse.replace(".IS", "")
         
         for period_adi, cfg in zaman_dilimleri.items():
@@ -132,9 +131,10 @@ def tarama_yap():
                 last_price = df["Close"].iloc[-1]
                 
                 if son_durum != onceki_durum:
+                    # TradingView ana grafik link formatı (Hatasız çalışan kusursuz yapı)
                     tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}&interval={cfg['tv_iv']}"
                     
-                    # Mesaj şablonunda uzantısız ticker_clean kullanıldı
+                    # Mesaj şablonu: .IS uzantısı yok, sadece temiz hisse ismine link gömülü
                     msg = f"🚨 <b>BİST SİNYAL DEĞİŞİKLİĞİ</b>\n\n📌 Hisse: <a href='{tv_link}'><b>{ticker_clean}</b></a> {last_price:.2f}₺\n⏳ Zaman Dilimi: <b>{period_adi}</b>\n🔄 Yeni Durum: <b>{son_durum}</b>"
                     
                     print(f"Sinyal değişti: {ticker_clean} ({period_adi}) -> {son_durum}")
