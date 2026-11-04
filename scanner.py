@@ -107,7 +107,6 @@ def hesapla_indikatorler(df):
     return df
 
 def tarama_yap():
-    # Zaman dilimleri ve TradingView uyumlu interval kodları eklendi
     zaman_dilimleri = {
         "Saatlik": {"interval": "60m", "tv_iv": "60"}, 
         "Günlük": {"interval": "1d", "tv_iv": "D"}, 
@@ -115,6 +114,7 @@ def tarama_yap():
     }
     
     for hisse in HISSELER:
+        # Uzantı tamamen temizleniyor (Örn: VAKBN)
         ticker_clean = hisse.replace(".IS", "")
         
         for period_adi, cfg in zaman_dilimleri.items():
@@ -132,13 +132,12 @@ def tarama_yap():
                 last_price = df["Close"].iloc[-1]
                 
                 if son_durum != onceki_durum:
-                    # TradingView linki, periyoduna uygun düzgün parametreyle oluşturuldu
                     tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}&interval={cfg['tv_iv']}"
                     
-                    # Mesajda hisse .IS uzantılı görünür, tıklandığında link hatasız açılır
-                    msg = f"🚨 <b>BİST SİNYAL DEĞİŞİKLİĞİ</b>\n\n📌 Hisse: <a href='{tv_link}'><b>{hisse}</b></a> {last_price:.2f}₺\n⏳ Zaman Dilimi: <b>{period_adi}</b>\n🔄 Yeni Durum: <b>{son_durum}</b>"
+                    # Mesaj şablonunda uzantısız ticker_clean kullanıldı
+                    msg = f"🚨 <b>BİST SİNYAL DEĞİŞİKLİĞİ</b>\n\n📌 Hisse: <a href='{tv_link}'><b>{ticker_clean}</b></a> {last_price:.2f}₺\n⏳ Zaman Dilimi: <b>{period_adi}</b>\n🔄 Yeni Durum: <b>{son_durum}</b>"
                     
-                    print(f"Sinyal değişti: {hisse} ({period_adi}) -> {son_durum}")
+                    print(f"Sinyal değişti: {ticker_clean} ({period_adi}) -> {son_durum}")
                     send_telegram_message(msg)
             except Exception as e:
                 print(f"{hisse} taranırken hata ({period_adi}): {e}")
