@@ -92,7 +92,7 @@ def calculate_indicators(df):
                 trend[i] = trend[i-1]
             tsl[i] = trUp[i] if trend[i] == 1 else trDn[i]
             
-        df['TSL']  = tsl
+        df['TSL'] = tsl
         df['Trend'] = np.where(df['AlphaTrend'] > df['TSL'], 'AL', 'SAT')
         return df
     except:
@@ -136,19 +136,21 @@ def run_screener():
                         last_price = df["Close"].iloc[-1]
                         tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}&interval={plan['tv_interval']}"
                         
-                        # Sizin örnek verdiğiniz formatın birebir aynısı
                         msg_line = f"🔵 <a href='{tv_link}'><b>{ticker_clean}</b></a> ({last_price:.2f} TL) | <b>{son_durum}</b>"
                         all_hits.append(msg_line)
                 except Exception:
                     continue
             time.sleep(DELAY_BETWEEN_BATCHES)
             
+        # Sinyal olsun veya olmasın her periyot için bilgi raporu gönderilir
         if all_hits:
             header = f"<b>🔥 {plan['timeframe']} SİNYAL DEĞİŞİKLİĞİ</b>\n\n"
             for j in range(0, len(all_hits), 20):
                 send_telegram(header + "\n".join(all_hits[j:j+20]))
         else:
-            print(f"[{plan['timeframe']}] Sinyal değiştiren hisse bulunamadı.")
+            # Değişiklik yoksa sistemin çalıştığını bildiren sakin durum mesajı
+            info_msg = f"ℹ️ <b>{plan['timeframe']} TARAMA RAPORU</b>\n--------------------------------------\nHer şey normal, trend devam ediyor. Sinyal değiştiren hisse bulunamadı."
+            send_telegram(info_msg)
 
 # ======================================================================
 # 📩 GÖNDERİM
