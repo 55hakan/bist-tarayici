@@ -15,7 +15,6 @@ HISSELER = [
 
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    # Gönderdiğiniz koddaki gibi HTML parse_mode ve reklamsız önizleme aktif
     payload = {
         "chat_id": CHAT_ID, 
         "text": message, 
@@ -111,6 +110,7 @@ def tarama_yap():
     zaman_dilimleri = {"Saatlik": "60m", "Günlük": "1d", "Haftalık": "1wk"}
     
     for hisse in HISSELER:
+        # Link için uzantısız temiz kod (Örn: VAKBN)
         ticker_clean = hisse.replace(".IS", "")
         
         for period_adi, interval in zaman_dilimleri.items():
@@ -128,13 +128,13 @@ def tarama_yap():
                 last_price = df["Close"].iloc[-1]
                 
                 if son_durum != onceki_durum:
-                    # Gönderdiğiniz örnekteki HTML link formatı
-                    tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}&interval=D"
+                    # Tıklandığında açılacak link arkada temiz çalışır (BIST:VAKBN)
+                    tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}"
                     
-                    # Gönderdiğiniz örnekteki HTML mesaj şablonu
-                    msg = f"🚨 <b>BİST SİNYAL DEĞİŞİKLİĞİ</b>\n\n📌 Hisse: <a href='{tv_link}'><b>{ticker_clean}</b></a> {last_price:.2f}₺\n⏳ Zaman Dilimi: <b>{period_adi}</b>\n🔄 Yeni Durum: <b>{son_durum}</b>"
+                    # Mesajda görünen metin tam istediğiniz gibi .IS uzantılı olur [{hisse}]
+                    msg = f"🚨 <b>BİST SİNYAL DEĞİŞİKLİĞİ</b>\n\n📌 Hisse: <a href='{tv_link}'><b>{hisse}</b></a> {last_price:.2f}₺\n⏳ Zaman Dilimi: <b>{period_adi}</b>\n🔄 Yeni Durum: <b>{son_durum}</b>"
                     
-                    print(f"Sinyal değişti: {ticker_clean} ({period_adi}) -> {son_durum}")
+                    print(f"Sinyal değişti: {hisse} ({period_adi}) -> {son_durum}")
                     send_telegram_message(msg)
             except Exception as e:
                 print(f"{hisse} taranırken hata ({period_adi}): {e}")
