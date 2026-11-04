@@ -107,11 +107,10 @@ def hesapla_indikatorler(df):
     return df
 
 def tarama_yap():
-    zaman_dilimleri = {"Saatlik": "60m", "Günlg": "1d", "Haftalık": "1wk"}
+    zaman_dilimleri = {"Saatlik": "60m", "Günlük": "1d", "Haftalık": "1wk"}
     
     for hisse in HISSELER:
-        # Uzantıyı tamamen siliyoruz (Örn: KCHOL.IS -> KCHOL)
-        hisse_temiz = hisse.split('.')[0]
+        hisse_temiz = hisse.split('.')[0] # .IS uzantısını siliyoruz (KCHOL)
         
         for period_adi, interval in zaman_dilimleri.items():
             try:
@@ -121,3 +120,20 @@ def tarama_yap():
                 
                 if isinstance(data.columns, pd.MultiIndex):
                     data.columns = data.columns.droplevel(1)
+                
+                df = hesapla_indikatorler(data)
+                son_durum = df['Trend'].iloc[-1]
+                onceki_durum = df['Trend'].iloc[-2]
+                
+                if son_durum != onceki_durum:
+                    tv_link = f"https://s.tradingview.com/widgetembed/?symbol=BIST:{hisse_temiz}&interval=60&theme=dark"
+                    
+                    # Hem görünen yazı [hisse_temiz] (örn: KCHOL) hem de link uzantısız oldu
+                    msg = f"🚨 *BIST SİNYAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse_temiz}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
+                    print(f"Sinyal değişti: {hisse_temiz} ({period_adi}) -> `szon_durum`")
+                    send_telegram_message(msg)
+            except Exception as e:
+                print(f"{hisse} taranırken hata ({period_adi}): {e}")
+
+if __name__ == "__main__":
+    tarama_yap()
