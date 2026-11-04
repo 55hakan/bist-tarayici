@@ -15,14 +15,15 @@ HISSELER = [
 
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    # Gönderdiğiniz koddaki gibi HTML parse_mode ve reklamsız önizleme aktif
     payload = {
         "chat_id": CHAT_ID, 
         "text": message, 
-        "parse_mode": "Markdown",
+        "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
     try:
-        requests.post(url, json=payload)
+        requests.post(url, json=payload, timeout=15)
     except Exception as e:
         print(f"Telegram mesajı gönderilemedi: {e}")
 
@@ -110,7 +111,7 @@ def tarama_yap():
     zaman_dilimleri = {"Saatlik": "60m", "Günlük": "1d", "Haftalık": "1wk"}
     
     for hisse in HISSELER:
-        hisse_temiz = hisse.split('.')[0] # .IS uzantısını siliyoruz (KCHOL)
+        ticker_clean = hisse.replace(".IS", "")
         
         for period_adi, interval in zaman_dilimleri.items():
             try:
@@ -124,13 +125,16 @@ def tarama_yap():
                 df = hesapla_indikatorler(data)
                 son_durum = df['Trend'].iloc[-1]
                 onceki_durum = df['Trend'].iloc[-2]
+                last_price = df["Close"].iloc[-1]
                 
                 if son_durum != onceki_durum:
-                    tv_link = f"https://s.tradingview.com/widgetembed/?symbol=BIST:{hisse_temiz}&interval=60&theme=dark"
+                    # Gönderdiğiniz örnekteki HTML link formatı
+                    tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}&interval=D"
                     
-                    # Hem görünen yazı [hisse_temiz] (örn: KCHOL) hem de link uzantısız oldu
-                    msg = f"🚨 *BIST SİNYAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse_temiz}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
-                    print(f"Sinyal değişti: {hisse_temiz} ({period_adi}) -> `szon_durum`")
+                    # Gönderdiğiniz örnekteki HTML mesaj şablonu
+                    msg = f"🚨 <b>BİST SİNYAL DEĞİŞİKLİĞİ</b>\n\n📌 Hisse: <a href='{tv_link}'><b>{ticker_clean}</b></a> {last_price:.2f}₺\n⏳ Zaman Dilimi: <b>{period_adi}</b>\n🔄 Yeni Durum: <b>{son_durum}</b>"
+                    
+                    print(f"Sinyal değişti: {ticker_clean} ({period_adi}) -> {son_durum}")
                     send_telegram_message(msg)
             except Exception as e:
                 print(f"{hisse} taranırken hata ({period_adi}): {e}")
