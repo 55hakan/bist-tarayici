@@ -107,9 +107,12 @@ def hesapla_indikatorler(df):
     return df
 
 def tarama_yap():
-    zaman_dilimleri = {"Saatlik": "60m", "Günlük": "1d", "Haftalık": "1wk"}
+    zaman_dilimleri = {"Saatlik": "60m", "Günlg": "1d", "Haftalık": "1wk"}
     
     for hisse in HISSELER:
+        # Uzantıyı tamamen siliyoruz (Örn: KCHOL.IS -> KCHOL)
+        hisse_temiz = hisse.split('.')[0]
+        
         for period_adi, interval in zaman_dilimleri.items():
             try:
                 data = yf.download(hisse, period="3mo", interval=interval, progress=False)
@@ -118,23 +121,3 @@ def tarama_yap():
                 
                 if isinstance(data.columns, pd.MultiIndex):
                     data.columns = data.columns.droplevel(1)
-                
-                df = hesapla_indikatorler(data)
-                son_durum = df['Trend'].iloc[-1]
-                onceki_durum = df['Trend'].iloc[-2]
-                
-                if son_durum != onceki_durum:
-                    # Noktadan önceki kısmı güvenle alıyoruz (Örn: KCHOL.IS -> KCHOL)
-                    tv_hisse = hisse.split('.')[0]
-                    
-                    # İlk başta sorunsuz çalışan widgetembed link formatı
-                    tv_link = f"https://s.tradingview.com/widgetembed/?symbol=BIST:{tv_hisse}&interval=60&theme=dark"
-                    
-                    msg = f"🚨 *BIST SİNYAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
-                    print(f"Sinyal değişti: {hisse} ({period_adi}) -> {son_durum}")
-                    send_telegram_message(msg)
-            except Exception as e:
-                print(f"{hisse} taranırken hata ({period_adi}): {e}")
-
-if __name__ == "__main__":
-    tarama_yap()
