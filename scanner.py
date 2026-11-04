@@ -9,10 +9,10 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # ======================================================================
-# 🔑 AYARLAR
+# 🔑 GÜVENLİ AYARLAR (GitHub Secrets üzerinden alınır)
 # ======================================================================
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "TELEGRAM_BOT_TOKEN_BURAYA")
-CHAT_ID = os.environ.get("CHAT_ID", "TELEGRAM_CHAT_ID_BURAYA")
+BOT_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_IDS = [os.environ.get("CHAT_ID")]
 BATCH_SIZE = 30
 DELAY_BETWEEN_BATCHES = 2.0
 
@@ -136,7 +136,7 @@ def run_screener():
                         last_price = df["Close"].iloc[-1]
                         tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}&interval={plan['tv_interval']}"
                         
-                        # Gönderdiğiniz örnekteki formatın aynısı (Uzantısız, direkt isme gömülü link)
+                        # Uzantısız, temiz isme gömülü TradingView linkli format
                         msg_line = f"🔵 <a href='{tv_link}'><b>{ticker_clean}</b></a> ({last_price:.2f} TL) | <b>{son_durum}</b>"
                         all_hits.append(msg_line)
                 except Exception:
@@ -155,6 +155,8 @@ def run_screener():
 # ======================================================================
 def send_telegram(msg):
     for cid in TELEGRAM_CHAT_IDS:
+        if not cid or not BOT_TOKEN:
+            continue
         try:
             requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                           data={"chat_id": cid, "text": msg, "parse_mode": "HTML", "disable_web_page_preview": True}, timeout=15)
