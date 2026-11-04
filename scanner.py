@@ -2,145 +2,163 @@ import os
 import requests
 import pandas as pd
 import numpy as np
+import time
 import yfinance as yf
+import warnings
 
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "TELEGRAM_BOT_TOKEN_BURAYA")
-CHAT_ID = os.environ.get("CHAT_ID", "TELEGRAM_CHAT_ID_BURAYA")
+warnings.filterwarnings("ignore")
 
-HISSELER = [
-    "ENJSA.IS", "GARAN.IS", "EREGL.IS", "KCHOL.IS", "TOASO.IS",
-    "VAKBN.IS", "TCELL.IS", "PGSUS.IS", "GUBRF.IS", "ISCTR.IS",
-    "FROTO.IS", "ALBRK.IS", "TAVHL.IS", "DIRIT.IS", "BIMAS.IS"
+# ======================================================================
+# 🔑 AYARLAR
+# ======================================================================
+BOT_TOKEN = os.environ.get("TELEGRAM_TOKEN", "TELEGRAM_BOT_TOKEN_BURAYA")
+TELEGRAM_CHAT_IDS = [os.environ.get("CHAT_ID", "-1001879888537")]
+BATCH_SIZE = 30
+DELAY_BETWEEN_BATCHES = 2.0
+
+# 🔧 TARAMA PLANI
+SCAN_PLAN = [
+    {"timeframe": "SAATLİK", "yf_interval": "60m", "period": "3mo", "tv_interval": "60"},
+    {"timeframe": "GÜNLÜK", "yf_interval": "1d", "period": "max", "tv_interval": "D"},
+    {"timeframe": "HAFTALIK", "yf_interval": "1wk", "period": "max", "tv_interval": "W"}
 ]
 
-def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID, 
-        "text": message, 
-        "parse_mode": "HTML",
-        "disable_web_page_preview": True
-    }
+# BIST Listesi
+BIST_TICKERS = [
+    "ENJSA", "GARAN", "EREGL", "KCHOL", "TOASO",
+    "VAKBN", "TCELL", "PGSUS", "GUBRF", "ISCTR",
+    "FROTO", "ALBRK", "TAVHL", "DIRIT", "BIMAS"
+]
+
+BIST_STOCK_LIST = [f"{t}.IS" for t in BIST_TICKERS]
+
+# ======================================================================
+# 📊 HASSAS HESAPLAMA (PINE SCRIPT UYUMLU)
+# ======================================================================
+def pine_rma(src, length):
+    alpha = 1 / length
+    return src.ewm(alpha=alpha, min_periods=length, adjust=False).mean()
+
+def calculate_indicators(df):
     try:
-        requests.post(url, json=payload, timeout=15)
-    except Exception as e:
-        print(f"Telegram mesajı gönderilemedi: {e}")
-
-def wilder_atr(df, period):
-    high = df['High']
-    low = df['Low']
-    close = df['Close']
-    tr = np.maximum(high - low, np.maximum(abs(high - close.shift(1)), abs(low - close.shift(1))))
-    return tr.ewm(alpha=1/period, adjust=False).mean()
-
-def calculate_mfi(df, period=14):
-    tp = (df['High'] + df['Low'] + df['Close']) / 3
-    rmf = tp * df['Volume']
-    pos_mf = np.where(tp > tp.shift(1), rmf, 0.0)
-    neg_mf = np.where(tp < tp.shift(1), rmf, 0.0)
-    
-    pos_sum = pd.Series(pos_mf).rolling(window=period).sum()
-    neg_sum = pd.Series(neg_mf).rolling(window=period).sum()
-    
-    mfi = 100.0 - (100.0 / (1.0 + (pos_sum / (neg_sum + 1e-10))))
-    return mfi
-
-def hesapla_indikatorler(df):
-    ap = 14
-    coeff = 1.0
-    
-    df['ATR'] = wilder_atr(df, ap)
-    df['UpT'] = df['Low'] - (df['ATR'] * coeff)
-    df['DnT'] = df['High'] + (df['ATR'] * coeff)
-    
-    df['MFI'] = calculate_mfi(df, ap)
-    df['MFI_Cond'] = df['MFI'] >= 50.0
-    
-    at = []
-    current_at = df['Low'].iloc[0]
-    for i in range(len(df)):
-        if i < ap or pd.isna(df['MFI_Cond'].iloc[i]):
-            at.append(current_at)
-            continue
-        upt_val = df['UpT'].iloc[i]
-        dnt_val = df['DnT'].iloc[i]
-        prev_at = at[-1]
+        if len(df) < 30: return None
+        df = df.copy()
+        high, low, close, volume = df['High'], df['Low'], df['Close'], df['Volume']
+        hl2 = (high + low) / 2
+        hlc3 = (high + low + close) / 3
         
-        if df['MFI_Cond'].iloc[i]:
-            val = max(upt_val, prev_at)
-        else:
-            val = min(dnt_val, prev_at)
-        at.append(val)
-    df['AT'] = at
-
-    factor = 3.0
-    pd_val = 7
-    hl2 = (df['High'] + df['Low']) / 2
-    df['ATR_ST'] = wilder_atr(df, pd_val)
-    df['ST_Up'] = hl2 - (factor * df['ATR_ST'])
-    df['ST_Dn'] = hl2 + (factor * df['ATR_ST'])
-    
-    trend = 1
-    tsl_list = []
-    tr_up = df['ST_Up'].iloc[0]
-    tr_dn = df['ST_Dn'].iloc[0]
-    
-    for i in range(len(df)):
-        if i == 0:
-            tsl_list.append(tr_up)
-            continue
-        c = df['Close'].iloc[i]
-        c_prev = df['Close'].iloc[i-1]
+        tr = pd.concat([high - low, abs(high - close.shift(1)), abs(low - close.shift(1))], axis=1).max(axis=1)
         
-        tr_up = max(df['ST_Up'].iloc[i], tr_up) if c_prev > tr_up else df['ST_Up'].iloc[i]
-        tr_dn = min(df['ST_Dn'].iloc[i], tr_dn) if c_prev < tr_dn else df['ST_Dn'].iloc[i]
+        # --- ALPHATREND ---
+        atr_ap = tr.rolling(window=14).mean()
+        mf = hlc3 * volume
+        upper_mf = mf.where(hlc3 > hlc3.shift(1), 0.0)
+        lower_mf = mf.where(hlc3 < hlc3.shift(1), 0.0)
+        pos_mf = upper_mf.rolling(window=14).sum()
+        neg_mf = lower_mf.rolling(window=14).sum()
+        df['mfi'] = 100 - (100 / (1 + (pos_mf / (neg_mf + 1e-10))))
         
-        if c > tr_dn:
-            trend = 1
-        elif c < tr_up:
-            trend = -1
+        at = np.zeros(len(df))
+        upT = (low - atr_ap * 1.0).values
+        dnT = (high + atr_ap * 1.0).values
+        mfi_vals = df['mfi'].values
+        
+        for i in range(1, len(df)):
+            if mfi_vals[i] >= 50:
+                at[i] = max(upT[i], at[i-1]) if not np.isnan(at[i-1]) else upT[i]
+            else:
+                at[i] = min(dnT[i], at[i-1]) if not np.isnan(at[i-1]) else dnT[i]
+        df['AlphaTrend'] = at
+        
+        # --- SUPERTREND ---
+        atr_st = pine_rma(tr, 7)
+        up_st = (hl2 - 3.0 * atr_st).values
+        dn_st = (hl2 + 3.0 * atr_st).values
+        
+        trUp = np.zeros(len(df))
+        trDn = np.zeros(len(df))
+        tsl = np.zeros(len(df))
+        trend = np.ones(len(df))
+        close_vals = close.values
+        
+        for i in range(1, len(df)):
+            trUp[i] = max(up_st[i], trUp[i-1]) if close_vals[i-1] > trUp[i-1] else up_st[i]
+            trDn[i] = min(dn_st[i], trDn[i-1]) if close_vals[i-1] < trDn[i-1] else dn_st[i]
+            if close_vals[i] > trDn[i-1]:
+                trend[i] = 1
+            elif close_vals[i] < trUp[i-1]:
+                trend[i] = -1
+            else:
+                trend[i] = trend[i-1]
+            tsl[i] = trUp[i] if trend[i] == 1 else trDn[i]
             
-        tsl_list.append(tr_up if trend == 1 else tr_dn)
-    
-    df['TSL'] = tsl_list
-    df['Trend'] = np.where(df['AT'] > df['TSL'], 'AL', 'SAT')
-    return df
+        df['TSL'] = tsl
+        df['Trend'] = np.where(df['AlphaTrend'] > df['TSL'], 'AL', 'SAT')
+        return df
+    except:
+        return None
 
-def tarama_yap():
-    zaman_dilimleri = {
-        "Saatlik": {"interval": "60m", "tv_iv": "60"}, 
-        "Günlük": {"interval": "1d", "tv_iv": "D"}, 
-        "Haftalık": {"interval": "1wk", "tv_iv": "W"}
-    }
-    
-    for hisse in HISSELER:
-        ticker_clean = hisse.replace(".IS", "")
-        
-        for period_adi, cfg in zaman_dilimleri.items():
+# ======================================================================
+# 🚀 TARAMA MOTORU
+# ======================================================================
+def run_screener():
+    print(f"🚀 LEDA Taraması Başlatıldı...")
+    for plan in SCAN_PLAN:
+        all_hits = []
+        print(f"🔎 {plan['timeframe']} taranıyor...")
+        for i in range(0, len(BIST_STOCK_LIST), BATCH_SIZE):
+            batch = BIST_STOCK_LIST[i:i+BATCH_SIZE]
             try:
-                data = yf.download(hisse, period="3mo", interval=cfg["interval"], progress=False)
-                if data.empty:
-                    continue
-                
-                if isinstance(data.columns, pd.MultiIndex):
-                    data.columns = data.columns.droplevel(1)
-                
-                df = hesapla_indikatorler(data)
-                son_durum = df['Trend'].iloc[-1]
-                onceki_durum = df['Trend'].iloc[-2]
-                last_price = df["Close"].iloc[-1]
-                
-                if son_durum != onceki_durum:
-                    # TradingView ana grafik link formatı (Hatasız çalışan kusursuz yapı)
-                    tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}&interval={cfg['tv_iv']}"
-                    
-                    # Mesaj şablonu: .IS uzantısı yok, sadece temiz hisse ismine link gömülü
-                    msg = f"🚨 <b>BİST SİNYAL DEĞİŞİKLİĞİ</b>\n\n📌 Hisse: <a href='{tv_link}'><b>{ticker_clean}</b></a> {last_price:.2f}₺\n⏳ Zaman Dilimi: <b>{period_adi}</b>\n🔄 Yeni Durum: <b>{son_durum}</b>"
-                    
-                    print(f"Sinyal değişti: {ticker_clean} ({period_adi}) -> {son_durum}")
-                    send_telegram_message(msg)
+                data = yf.download(batch, interval=plan['yf_interval'], period=plan['period'],
+                                     progress=False, group_by="ticker", auto_adjust=True, threads=True)
             except Exception as e:
-                print(f"{hisse} taranırken hata ({period_adi}): {e}")
+                print(f"Hata: {e}")
+                continue
+            
+            for ticker_full in batch:
+                try:
+                    if len(batch) > 1:
+                        if ticker_full not in data.columns.levels[0]: continue
+                        df = data[ticker_full].dropna()
+                    else:
+                        df = data.dropna()
+                        
+                    if df.empty or len(df) < 30: continue
+                    
+                    df = calculate_indicators(df)
+                    if df is None: continue
+                    
+                    son_durum = df['Trend'].iloc[-1]
+                    onceki_durum = df['Trend'].iloc[-2]
+                    
+                    if son_durum != onceki_durum:
+                        ticker_clean = ticker_full.replace(".IS", "")
+                        last_price = df["Close"].iloc[-1]
+                        tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{ticker_clean}&interval={plan['tv_interval']}"
+                        
+                        # Gönderdiğiniz örnekteki formatın aynısı (Uzantısız, direkt isme gömülü link)
+                        msg_line = f"🔵 <a href='{tv_link}'><b>{ticker_clean}</b></a> ({last_price:.2f} TL) | <b>{son_durum}</b>"
+                        all_hits.append(msg_line)
+                except Exception:
+                    continue
+            time.sleep(DELAY_BETWEEN_BATCHES)
+            
+        if all_hits:
+            header = f"<b>🔥 {plan['timeframe']} SİNYAL DEĞİŞİKLİĞİ</b>\n\n"
+            for j in range(0, len(all_hits), 20):
+                send_telegram(header + "\n".join(all_hits[j:j+20]))
+        else:
+            print(f"[{plan['timeframe']}] Sinyal değiştiren hisse bulunamadı.")
+
+# ======================================================================
+# 📩 GÖNDERİM
+# ======================================================================
+def send_telegram(msg):
+    for cid in TELEGRAM_CHAT_IDS:
+        try:
+            requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                          data={"chat_id": cid, "text": msg, "parse_mode": "HTML", "disable_web_page_preview": True}, timeout=15)
+        except: pass
 
 if __name__ == "__main__":
-    tarama_yap()
+    run_screener()
