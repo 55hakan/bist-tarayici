@@ -126,10 +126,13 @@ def tarama_yap():
                 onceki_durum = df['Trend'].iloc[-2]
                 
                 if son_durum != onceki_durum:
-                    tv_hisse = hisse.replace(".IS", "")
-                    tv_link = f"https://s.tradingview.com/widgetembed/?symbol=BIST:{tv_hisse}&interval=60&theme=dark"
+                    # Hisse adını .IS uzantısından temizleyip tamamen BÜYÜK harfe çeviriyoruz (Örn: kchol.is -> KCHOL)
+                    tv_hisse = hisse.replace(".IS", "").upper()
                     
-                    msg = f"🚨 *BIST SİNYAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
+                    # Doğrudan TradingView ana grafik linki (Mobilde uygulamayı veya tarayıcıyı direkt tetikler)
+                    tv_link = f"https://www.tradingview.com/chart/?symbol=BIST:{tv_hisse}"
+                    
+                    msg = f"🚨 *BIST SİNİAL DEĞİŞİKLİĞİ*\n\n📌 Hisse: [{hisse}]({tv_link})\n⏳ Zaman Dilimi: `{period_adi}`\n🔄 Yeni Durum: **{son_durum}**"
                     print(f"Sinyal değişti: {hisse} ({period_adi}) -> {son_durum}")
                     send_telegram_message(msg)
             except Exception as e:
