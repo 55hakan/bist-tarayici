@@ -2,10 +2,16 @@ name: BIST Sinyal Tarayici
 
 on:
   schedule:
-    # Türkiye saatiyle 10:20'de başlar, her saat 20 geçe çalışır ve 18:20'de son taramasını yapar
-    - cron: '20 7-15 * * 1-5'
+    - cron: '20 7 * * 1-5'   # 10:20
+    - cron: '20 8 * * 1-5'   # 11:20
+    - cron: '20 9 * * 1-5'   # 12:20
+    - cron: '20 10 * * 1-5'  # 13:20
+    - cron: '20 11 * * 1-5'  # 14:20
+    - cron: '20 12 * * 1-5'  # 15:20
+    - cron: '20 13 * * 1-5'  # 16:20
+    - cron: '20 14 * * 1-5'  # 17:20
+    - cron: '20 15 * * 1-5'  # 18:20 (Kapanış)
   workflow_dispatch:
-
 jobs:
   run-scanner:
     runs-on: ubuntu-latest
