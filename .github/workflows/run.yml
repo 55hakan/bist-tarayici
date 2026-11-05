@@ -2,7 +2,7 @@ name: BIST Sinyal Tarayici
 
 on:
   schedule:
-    # Türkiye saatiyle 10:20'den 18:30'a kadar her saat başı çalışır (Pazartesi-Cuma)
+    # Türkiye saatiyle 10:20'de başlar, her saat 20 geçe çalışır ve 18:20'de son taramasını yapar
     - cron: '20 7-15 * * 1-5'
   workflow_dispatch:
 
